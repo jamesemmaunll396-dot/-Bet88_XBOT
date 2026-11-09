@@ -1,183 +1,62 @@
-
 import os
 import logging
+import asyncio
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, ContextTypes
 
-from telegram import (
-    Update,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup
-)
-
-from telegram.ext import (
-    Application,
-    CommandHandler,
-    ContextTypes
-)
-
-# ==========================================
-# LOGGING
-# ==========================================
-
+# បើកប្រព័ន្ធកត់ត្រាការងារ (Logging)
 logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
-
 logger = logging.getLogger(__name__)
 
+# ទាញយក Token ពី Environment Variables របស់ Render
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
-# ==========================================
-# BOT CONFIGURATION
-# ==========================================
-
-BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-
-
-# Button text
-BUTTON_TEXT = "DM ME NOW GET FREE BONUS"
-
-
-# ==========================================
-# WELCOME MESSAGE
-# ==========================================
-
-WELCOME_MESSAGE = (
-    "សូមស្វាគមន៍មកវេបសាយធំបំផុត ងាយស្រួលលេង📲 "
-    "និងគួរឱ្យទុកចិត្តបំផុតនៅ\n\n"
-    "កម្ពុជា🔥សេវាកម្ម២៤ម៉ោង\n\n"
-    " https://t.me/WIN365KH1BOT?start=telegram"
-)
-
-
-# ==========================================
-# START COMMAND
-# ==========================================
-
-async def start(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
-
+# --- ពាក្យបញ្ជា /start ---
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    # បង្កើតប៊ូតុងតំណភ្ជាប់នៅពីក្រោមសារ
     keyboard = [
-        [
-            InlineKeyboardButton(
-                text=BUTTON_TEXT,
-                url=CONTACT_LINK
-            )
-        ]
+        [InlineKeyboardButton("🌐 ចូលលេងកម្សាន្តទីនេះ", url="https://t.me/WIN365KH1BOT?start=telegram")]
     ]
-
     reply_markup = InlineKeyboardMarkup(keyboard)
-
-    await update.effective_message.reply_text(
-        text=WELCOME_MESSAGE,
-        reply_markup=reply_markup,
-        disable_web_page_preview=True
+    
+    # សារស្វាគមន៍ដែលអ្នកចង់បាន
+    welcome_msg = (
+        "សូមស្វាគមន៍មកវេបសាយធំបំផុត ងាយស្រួលលេង📲 "
+        "និងគួរឱ្យទុកចិត្តបំផុតនៅកម្ពុជា🔥សេវាកម្ម២៤ម៉ោង!"
     )
+    
+    if update.message:
+        await update.message.reply_text(welcome_msg, reply_markup=reply_markup)
 
-    logger.info(
-        "Welcome message sent to user %s",
-        update.effective_user.id
-    )
+async def run_bot() -> None:
+    if not TOKEN:
+        logger.error("រកមិនឃើញ TELEGRAM_BOT_TOKEN នៅក្នុង Environment Variables ទេ!")
+        return
 
+    # កសាងកម្មវិធីបូត
+    application = Application.builder().token(TOKEN).build()
 
-# ==========================================
-# HELP COMMAND
-# ==========================================
+    # បន្ថែម Command Handler សម្រាប់ /start
+    application.add_handler(CommandHandler("start", start))
 
-async def help_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
+    # ចាប់ផ្តើមដំណើរការបូត
+    logger.info("កំពុងចាប់ផ្តើមដំណើរការបូត...")
+    await application.initialize()
+    await application.start()
+    
+    # រក្សាបូតឱ្យដំណើរការជាប្រចាំ
+    await application.updater.start_polling()
+    
+    stop_signal = asyncio.Event()
+    await stop_signal.wait()
 
-    await update.effective_message.reply_text(
-        "សូមប្រើ /start ដើម្បីចាប់ផ្តើម។\n\n"
-        "Send /start to receive the welcome message."
-    )
-
-
-# ==========================================
-# UNKNOWN COMMAND
-# ==========================================
-
-async def unknown_command(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE
-):
-
-    await update.effective_message.reply_text(
-        "Please send /start to begin."
-    )
-
-
-# ==========================================
-# ERROR HANDLER
-# ==========================================
-
-async def error_handler(
-    update: object,
-    context: ContextTypes.DEFAULT_TYPE
-):
-
-    logger.error(
-        "Telegram bot error:",
-        exc_info=context.error
-    )
-
-
-# ==========================================
-# MAIN FUNCTION
-# ==========================================
-
-def main():
-
-    if not BOT_TOKEN:
-        raise ValueError(
-            "TELEGRAM_BOT_TOKEN is missing. "
-            "Please add it to Render environment variables."
-        )
-
-    logger.info("Starting Telegram bot...")
-
-    application = (
-        Application.builder()
-        .token(BOT_TOKEN)
-        .build()
-    )
-
-    # Register commands
-    application.add_handler(
-        CommandHandler("start", start)
-    )
-
-    application.add_handler(
-        CommandHandler("help", help_command)
-    )
-
-    application.add_handler(
-        MessageHandler(
-            filters.COMMAND,
-            unknown_command
-        )
-    )
-
-    # Register error handler
-    application.add_error_handler(error_handler)
-
-    logger.info("Bot is ready to receive Telegram messages.")
-
-    # Start bot
-    application.run_polling(
-        allowed_updates=Update.ALL_TYPES,
-        drop_pending_updates=True
-    )
-
-
-# ==========================================
-# RUN BOT
-# ==========================================
-
-from telegram.ext import MessageHandler, filters
+def main() -> None:
+    try:
+        asyncio.run(run_bot())
+    except KeyboardInterrupt:
+        logger.info("បូតត្រូវបានបញ្ឈប់។")
 
 if __name__ == "__main__":
     main()
