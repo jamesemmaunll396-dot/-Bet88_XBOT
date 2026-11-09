@@ -15,13 +15,13 @@ TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 # --- ពាក្យបញ្ជា /start ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    # បង្កើតប៊ូតុងតំណភ្ជាប់នៅពីក្រោមសារ
+    # បង្កើតប៊ូតុងតំណភ្ជាប់នៅពីក្រោមសារជាមួយ URL ថ្មី
     keyboard = [
         [InlineKeyboardButton("🌐 ចូលលេងកម្សាន្តទីនេះ", url="https://t.me/BET88KH1BOT?start=telegram")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    # សារស្វាគមន៍ដែលអ្នកចង់បាន
+    # សារស្វាគមន៍
     welcome_msg = (
         "សូមស្វាគមន៍មកវេបសាយធំបំផុត ងាយស្រួលលេង📲 "
         "និងគួរឱ្យទុកចិត្តបំផុតនៅកម្ពុជា🔥សេវាកម្ម២៤ម៉ោង!"
