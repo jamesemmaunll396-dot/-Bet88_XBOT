@@ -1,106 +1,183 @@
+
 import os
 import logging
-import asyncio
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
-# Enable logging
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+from telegram import (
+    Update,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup
 )
+
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    ContextTypes
+)
+
+# ==========================================
+# LOGGING
+# ==========================================
+
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO
+)
+
 logger = logging.getLogger(__name__)
 
-# Fetch Token from Environment Variables
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
-# --- Command: /start ---
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user = update.effective_user
+# ==========================================
+# BOT CONFIGURATION
+# ==========================================
+
+BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+
+
+# Button text
+BUTTON_TEXT = "DM ME NOW GET FREE BONUS"
+
+
+# ==========================================
+# WELCOME MESSAGE
+# ==========================================
+
+WELCOME_MESSAGE = (
+    "សូមស្វាគមន៍មកវេបសាយធំបំផុត ងាយស្រួលលេង📲 "
+    "និងគួរឱ្យទុកចិត្តបំផុតនៅ\n\n"
+    "កម្ពុជា🔥សេវាកម្ម២៤ម៉ោង\n\n"
+    " https://t.me/WIN365KH1BOT?start=telegram"
+)
+
+
+# ==========================================
+# START COMMAND
+# ==========================================
+
+async def start(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
     keyboard = [
-        [InlineKeyboardButton("⚽ Latest Football News", callback_data="news")],
-        [InlineKeyboardButton("🏆 Live Scores / Matches", callback_data="scores")],
-        [InlineKeyboardButton("📊 Transfer Rumors", callback_data="transfers")],
+        [
+            InlineKeyboardButton(
+                text=BUTTON_TEXT,
+                url=CONTACT_LINK
+            )
+        ]
     ]
+
     reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    welcome_msg = (
-        f"Hello {user.first_name}! ⚽\n\n"
-        "Welcome to your ultimate Football News Bot. "
-        "Choose an option below to get started:"
+
+    await update.effective_message.reply_text(
+        text=WELCOME_MESSAGE,
+        reply_markup=reply_markup,
+        disable_web_page_preview=True
     )
-    
-    if update.message:
-        await update.message.reply_text(welcome_msg, reply_markup=reply_markup)
-    elif update.callback_query:
-        await update.callback_query.message.edit_text(welcome_msg, reply_markup=reply_markup)
 
-# --- Button Click Handler ---
-async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    query = update.callback_query
-    await query.answer()
+    logger.info(
+        "Welcome message sent to user %s",
+        update.effective_user.id
+    )
 
-    back_keyboard = [[InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]]
-    back_markup = InlineKeyboardMarkup(back_keyboard)
 
-    if query.data == "news":
-        news_text = (
-            "📰 **Latest Football Headlines:**\n\n"
-            "1. *Champions League:* Thrilling quarter-final draws announced!\n"
-            "2. *Premier League:* Title race heats up as leaders draw.\n"
-            "3. *La Liga:* Star striker secures a dramatic last-minute win."
+# ==========================================
+# HELP COMMAND
+# ==========================================
+
+async def help_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    await update.effective_message.reply_text(
+        "សូមប្រើ /start ដើម្បីចាប់ផ្តើម។\n\n"
+        "Send /start to receive the welcome message."
+    )
+
+
+# ==========================================
+# UNKNOWN COMMAND
+# ==========================================
+
+async def unknown_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    await update.effective_message.reply_text(
+        "Please send /start to begin."
+    )
+
+
+# ==========================================
+# ERROR HANDLER
+# ==========================================
+
+async def error_handler(
+    update: object,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    logger.error(
+        "Telegram bot error:",
+        exc_info=context.error
+    )
+
+
+# ==========================================
+# MAIN FUNCTION
+# ==========================================
+
+def main():
+
+    if not BOT_TOKEN:
+        raise ValueError(
+            "TELEGRAM_BOT_TOKEN is missing. "
+            "Please add it to Render environment variables."
         )
-        await query.message.edit_text(news_text, reply_markup=back_markup, parse_mode="Markdown")
 
-    elif query.data == "scores":
-        scores_text = (
-            "⚽ **Recent Match Results:**\n\n"
-            "• Real Madrid 2 - 1 Barcelona\n"
-            "• Arsenal 3 - 0 Chelsea\n"
-            "• Bayern Munich 2 - 2 Dortmund"
+    logger.info("Starting Telegram bot...")
+
+    application = (
+        Application.builder()
+        .token(BOT_TOKEN)
+        .build()
+    )
+
+    # Register commands
+    application.add_handler(
+        CommandHandler("start", start)
+    )
+
+    application.add_handler(
+        CommandHandler("help", help_command)
+    )
+
+    application.add_handler(
+        MessageHandler(
+            filters.COMMAND,
+            unknown_command
         )
-        await query.message.edit_text(scores_text, reply_markup=back_markup, parse_mode="Markdown")
+    )
 
-    elif query.data == "transfers":
-        transfer_text = (
-            "🔄 **Top Transfer Rumors:**\n\n"
-            "• Midfield prodigy linked with an £80m summer switch.\n"
-            "• Winger confirms open talks with European giants."
-        )
-        await query.message.edit_text(transfer_text, reply_markup=back_markup, parse_mode="Markdown")
+    # Register error handler
+    application.add_error_handler(error_handler)
 
-    elif query.data == "main_menu":
-        await start(update, context)
+    logger.info("Bot is ready to receive Telegram messages.")
 
-async def run_bot() -> None:
-    if not TOKEN:
-        logger.error("No TELEGRAM_BOT_TOKEN found in environment variables!")
-        return
+    # Start bot
+    application.run_polling(
+        allowed_updates=Update.ALL_TYPES,
+        drop_pending_updates=True
+    )
 
-    # Build the application
-    application = Application.builder().token(TOKEN).build()
 
-    # Handlers
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CallbackQueryHandler(button_handler))
+# ==========================================
+# RUN BOT
+# ==========================================
 
-    # Initialize and start polling safely
-    logger.info("Starting bot initialization...")
-    await application.initialize()
-    await application.start()
-    logger.info("Bot started polling successfully!")
-    
-    # Keep the bot running
-    await application.updater.start_polling()
-    
-    # Run indefinitely until stopped
-    stop_signal = asyncio.Event()
-    await stop_signal.wait()
-
-def main() -> None:
-    try:
-        asyncio.run(run_bot())
-    except KeyboardInterrupt:
-        logger.info("Bot stopped by user.")
+from telegram.ext import MessageHandler, filters
 
 if __name__ == "__main__":
     main()
