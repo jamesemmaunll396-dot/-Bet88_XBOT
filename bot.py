@@ -17,7 +17,7 @@ TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # បង្កើតប៊ូតុងតំណភ្ជាប់នៅពីក្រោមសារ
     keyboard = [
-        [InlineKeyboardButton("🌐 ចូលលេងកម្សាន្តទីនេះ", url="https://t.me/WIN365KH1BOT?start=telegram")]
+        [InlineKeyboardButton("🌐 ចូលលេងកម្សាន្តទីនេះ", url="https://t.me/BET88KH1BOT?start=telegram")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
